@@ -37,6 +37,8 @@
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     .pill{display:inline-block;background:#f3f4f6;border-radius:999px;padding:3px 9px;font-size:12px;color:#111;margin-inline-start:6px}
     .divider{height:1px;background:#eee;margin:12px 0}
+    .note{color:#666;margin:0}
+    .small{font-size:12px;color:#666}
   </style>
 </head>
 
@@ -47,24 +49,27 @@
   <!-- Login Card -->
   <div id="loginCard" class="card">
     <h3>تسجيل دخول الأدمن</h3>
+    <p class="small">⚠️ تأكد أن Email/Password مفعّل من Firebase Auth → Sign-in method.</p>
+
     <div class="grid2">
       <div>
         <label>الإيميل</label>
-        <input id="email" type="email" placeholder="admin@example.com">
+        <input id="email" type="email" placeholder="admin@example.com" autocomplete="username">
       </div>
       <div>
         <label>كلمة المرور</label>
-        <input id="password" type="password" placeholder="••••••••">
+        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
       </div>
     </div>
+
     <div class="btnbar">
       <button id="loginBtn" class="ok">دخول</button>
     </div>
+
     <div id="loginMsg"></div>
+
     <div class="divider"></div>
-    <p style="color:#666;margin:0">
-      ✅ الحماية هنا عبر Firebase Auth + قواعد Firestore (أقوى من باسورد داخل الصفحة).
-    </p>
+    <p class="note">✅ الحماية هنا عبر Firebase Auth + قواعد Firestore (أقوى من باسورد داخل الصفحة).</p>
   </div>
 
   <!-- Admin Panel -->
@@ -158,15 +163,18 @@
     <!-- Edit Products -->
     <div id="tab-editProducts" class="hidden">
       <h3>✏️ تعديل المنتجات</h3>
-      <p style="margin:0;color:#666">اضغط "تعديل" على أي منتج ثم غيّر البيانات واحفظ.</p>
+      <p class="note">اضغط "تعديل" على أي منتج ثم غيّر البيانات واحفظ.</p>
+
       <div class="btnbar">
         <button id="reloadEditBtn" class="muted">تحديث القائمة</button>
       </div>
+
       <div id="editList" class="list"></div>
 
       <!-- Edit Box -->
       <div id="editBox" class="card hidden" style="margin-top:12px;background:#fafafa">
         <h4 style="margin:0 0 10px">تعديل المنتج</h4>
+
         <div class="grid2">
           <div>
             <label>اسم المنتج (مطلوب)</label>
@@ -213,10 +221,12 @@
     <!-- Delete Products -->
     <div id="tab-deleteProducts" class="hidden">
       <h3>🗑️ حذف المنتجات</h3>
-      <p style="margin:0;color:#666">اضغط حذف وسيطلب تأكيد.</p>
+      <p class="note">اضغط حذف وسيطلب تأكيد.</p>
+
       <div class="btnbar">
         <button id="reloadDeleteBtn" class="muted">تحديث القائمة</button>
       </div>
+
       <div id="deleteList" class="list"></div>
       <div id="deleteMsg"></div>
     </div>
@@ -237,10 +247,11 @@
     orderBy,
     doc,
     deleteDoc,
-    updateDoc
+    updateDoc,
+    deleteField
   } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-  // ✅ ضع إعدادات مشروعك
+  // ✅ إعدادات مشروعك
   const firebaseConfig = {
     apiKey: "AIzaSyD4GGpTrC6htUcskMcECYM06zjKYQd7CmA",
     authDomain: "alaa-f520d.firebaseapp.com",
@@ -254,17 +265,20 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // UI helpers
+  // Helpers
   const $ = (id) => document.getElementById(id);
+
   function showMsg(el, text, type="ok"){
     el.innerHTML = `<div class="msg ${type === "ok" ? "ok":"err"}">${text}</div>`;
   }
   function clearMsg(el){ el.innerHTML = ""; }
+
   function safeNum(v){
     if (v === "" || v === null || v === undefined) return null;
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
   }
+
   function descToArray(text){
     const t = (text || "").trim();
     if(!t) return null;
@@ -288,14 +302,15 @@
     clearMsg($("loginMsg"));
     const email = $("email").value.trim();
     const pass = $("password").value;
+
     if(!email || !pass) return showMsg($("loginMsg"), "اكتب الإيميل وكلمة المرور", "err");
 
     try{
       await signInWithEmailAndPassword(auth, email, pass);
       $("password").value = "";
     }catch(e){
-      showMsg($("loginMsg"), "فشل الدخول: تأكد من البيانات", "err");
       console.error(e);
+      showMsg($("loginMsg"), `فشل الدخول ❌ (${e.code || "error"})`, "err");
     }
   };
 
@@ -309,7 +324,6 @@
       $("adminCard").classList.remove("hidden");
       $("userInfo").textContent = user.email || user.uid;
 
-      // جهّز القوائم أول ما يدخل
       await loadGroupsToDropdowns();
       await renderGroupsList();
       await renderEditList();
@@ -323,21 +337,19 @@
 
   // ---------- GROUPS ----------
   async function loadGroupsToDropdowns(){
-    // يسحب المجموعات ويرتبها حسب order ثم الاسم
     const groupsRef = collection(db, "groups");
     let snap;
+
     try{
       snap = await getDocs(query(groupsRef, orderBy("order","asc")));
     }catch{
-      // إذا ما عندك order لبعض السجلات، نجيب بدون orderBy
       snap = await getDocs(groupsRef);
     }
 
     const groups = [];
     snap.forEach(d => groups.push({ id:d.id, ...d.data() }));
 
-    // ترتيب احتياطي
-    groups.sort((a,b)=> (a.order??9999)-(b.order??9999) || String(a.name||"").localeCompare(String(b.name||"")));
+    groups.sort((a,b)=> (a.order ?? 9999) - (b.order ?? 9999) || String(a.name||"").localeCompare(String(b.name||"")));
 
     const fill = (selectEl) => {
       const current = selectEl.value;
@@ -369,11 +381,12 @@
       $("g_name").value = "";
       $("g_order").value = "";
       showMsg($("addGroupMsg"), "تمت إضافة المجموعة ✅");
+
       await loadGroupsToDropdowns();
       await renderGroupsList();
     }catch(e){
-      showMsg($("addGroupMsg"), "حدث خطأ أثناء إضافة المجموعة", "err");
       console.error(e);
+      showMsg($("addGroupMsg"), `خطأ أثناء إضافة المجموعة (${e.code || "error"})`, "err");
     }
   };
 
@@ -387,13 +400,14 @@
     const list = $("groupsList");
     list.innerHTML = "جاري التحميل...";
     const snap = await getDocs(collection(db,"groups"));
+
     const groups = [];
     snap.forEach(d=>groups.push({id:d.id, ...d.data()}));
-    groups.sort((a,b)=> (a.order??9999)-(b.order??9999) || String(a.name||"").localeCompare(String(b.name||"")));
+    groups.sort((a,b)=> (a.order ?? 9999) - (b.order ?? 9999) || String(a.name||"").localeCompare(String(b.name||"")));
 
     list.innerHTML = "";
     if(!groups.length){
-      list.innerHTML = `<div style="color:#666">لا توجد مجموعات بعد.</div>`;
+      list.innerHTML = `<div class="small">لا توجد مجموعات بعد.</div>`;
       return;
     }
 
@@ -413,7 +427,6 @@
       `;
     });
 
-    // حذف مجموعة (اختياري)
     list.querySelectorAll("[data-del-group]").forEach(btn=>{
       btn.onclick = async ()=>{
         const id = btn.getAttribute("data-del-group");
@@ -439,7 +452,7 @@
     const order = safeNum($("p_order").value);
     const description1 = descToArray($("p_desc").value);
 
-    // ✅ السماح بالحقول الفارغة: نخزن فقط الموجود
+    // ✅ نخزن فقط الموجود (الحقول الفارغة مسموحة)
     const data = {
       name,
       createdAt: Date.now(),
@@ -464,12 +477,12 @@
       await renderEditList();
       await renderDeleteList();
     }catch(e){
-      showMsg($("addProductMsg"), "حدث خطأ أثناء إضافة المنتج", "err");
       console.error(e);
+      showMsg($("addProductMsg"), `خطأ أثناء إضافة المنتج (${e.code || "error"})`, "err");
     }
   };
 
-  // ---------- LIST PRODUCTS (EDIT / DELETE) ----------
+  // ---------- LIST HELPERS ----------
   async function getGroupsMap(){
     const snap = await getDocs(collection(db,"groups"));
     const map = new Map();
@@ -485,9 +498,10 @@
     }catch{
       snap = await getDocs(ref);
     }
+
     const arr = [];
     snap.forEach(d=>arr.push({id:d.id, ...d.data()}));
-    arr.sort((a,b)=> (a.order??9999)-(b.order??9999) || String(a.name||"").localeCompare(String(b.name||"")));
+    arr.sort((a,b)=> (a.order ?? 9999) - (b.order ?? 9999) || String(a.name||"").localeCompare(String(b.name||"")));
     return arr;
   }
 
@@ -504,7 +518,7 @@
 
     list.innerHTML = "";
     if(!products.length){
-      list.innerHTML = `<div style="color:#666">لا توجد منتجات.</div>`;
+      list.innerHTML = `<div class="small">لا توجد منتجات.</div>`;
       return;
     }
 
@@ -537,8 +551,8 @@
             await renderDeleteList();
             await renderEditList();
           }catch(e){
-            showMsg($("deleteMsg"), "فشل الحذف", "err");
             console.error(e);
+            showMsg($("deleteMsg"), `فشل الحذف (${e.code || "error"})`, "err");
           }
         }
       };
@@ -563,7 +577,7 @@
 
     list.innerHTML = "";
     if(!products.length){
-      list.innerHTML = `<div style="color:#666">لا توجد منتجات.</div>`;
+      list.innerHTML = `<div class="small">لا توجد منتجات.</div>`;
       return;
     }
 
@@ -602,6 +616,7 @@
         $("e_order").value = (p.order ?? "");
         $("e_group").value = (p.groupId ?? "");
         $("e_desc").value = (Array.isArray(p.description1) ? p.description1.join("\n") : "");
+
         clearMsg($("editMsg"));
       };
     });
@@ -626,32 +641,42 @@
     const groupId = $("e_group").value || null;
     const description1 = descToArray($("e_desc").value);
 
-    // نحدث فقط الموجود + نسمح بترك حقول فاضية (نحذفها من الدوك)
+    // ✅ تحديث + حذف الحقول الفارغة فعليًا (أفضل من null)
     const payload = {
       name,
       order: order ?? 9999,
       updatedAt: Date.now()
     };
 
-    // ملاحظة: updateDoc لا يحذف الحقول تلقائيًا إذا تركتها فاضية
-    // لذلك سنحطها null، وموقعك يتعامل معها كاختيارية
-    payload.price = (price !== null) ? price : null;
-    payload.image = image ? image : null;
-    payload.groupId = groupId ? groupId : null;
-    payload.description1 = description1 ? description1 : null;
+    // price
+    if(price !== null) payload.price = price;
+    else payload.price = deleteField();
+
+    // image
+    if(image) payload.image = image;
+    else payload.image = deleteField();
+
+    // groupId
+    if(groupId) payload.groupId = groupId;
+    else payload.groupId = deleteField();
+
+    // description1
+    if(description1) payload.description1 = description1;
+    else payload.description1 = deleteField();
 
     try{
       await updateDoc(doc(db,"products",editingId), payload);
       showMsg($("editMsg"), "تم حفظ التعديل ✅");
+
       await renderEditList();
       await renderDeleteList();
     }catch(e){
-      showMsg($("editMsg"), "فشل الحفظ", "err");
       console.error(e);
+      showMsg($("editMsg"), `فشل الحفظ (${e.code || "error"})`, "err");
     }
   };
 
-  // بدء: افتح أول تب
+  // Start
   openTab("addProduct");
 </script>
 </body>
