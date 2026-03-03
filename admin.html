@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>لوحة التحكم</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#f5f5f5;padding:20px}
+form{background:#fff;padding:20px;border-radius:12px;max-width:500px}
+input,textarea,select{width:100%;padding:8px;margin:8px 0}
+button{padding:10px;background:#000;color:#fff;border:none;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h2>➕ إضافة منتج</h2>
+
+<form id="productForm">
+  <input type="text" id="name" placeholder="اسم المنتج" required>
+  <input type="number" id="price" placeholder="السعر" required>
+  <input type="text" id="image" placeholder="رابط الصورة" required>
+  <input type="text" id="category" placeholder="المجموعة (مثال: chatgpt)" required>
+  <input type="number" id="order" placeholder="الترتيب (1,2,3...)" required>
+  <textarea id="description" placeholder="الوصف (كل سطر سيكون نقطة جديدة)"></textarea>
+  <button type="submit">إضافة المنتج</button>
+</form>
+
+<p id="msg"></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD4GGpTrC6htUcskMcECYM06zjKYQd7CmA",
+  authDomain: "alaa-f520d.firebaseapp.com",
+  projectId: "alaa-f520d",
+  storageBucket: "alaa-f520d.firebasestorage.app",
+  messagingSenderId: "14934832180",
+  appId: "1:14934832180:web:e70c3503671c9d25228661"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+document.getElementById("productForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value;
+  const price = Number(document.getElementById("price").value);
+  const image = document.getElementById("image").value;
+  const category = document.getElementById("category").value;
+  const order = Number(document.getElementById("order").value);
+
+  const descriptionText = document.getElementById("description").value;
+  const description1 = descriptionText.split("\n").filter(line => line.trim() !== "");
+
+  try {
+    await addDoc(collection(db, "products"), {
+      name,
+      price,
+      image,
+      category,
+      order,
+      description1
+    });
+
+    document.getElementById("msg").innerText = "✅ تم إضافة المنتج بنجاح";
+    document.getElementById("productForm").reset();
+
+  } catch (error) {
+    document.getElementById("msg").innerText = "❌ حدث خطأ";
+    console.error(error);
+  }
+});
+</script>
+
+</body>
+</html>
