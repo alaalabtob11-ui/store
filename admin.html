@@ -252,19 +252,26 @@
   } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
   // ✅ إعدادات مشروعك
-    const firebaseConfig = {
-  apiKey: "AIzaSyD4GGpTrC6htUcsKmEcYCM06zjKYQd7CmA",
+   const firebaseConfig = {
+  apiKey: "AIzaSyD4GGpTrC6htUcskMcECYM06zjKYQd7CmA",
   authDomain: "alaa-f520d.firebaseapp.com",
   projectId: "alaa-f520d",
   storageBucket: "alaa-f520d.firebasestorage.app",
   messagingSenderId: "14934832180",
-  appId: "1:14934832180:web:e70c3503671c9d25228661",
-  measurementId: "G-R4NWGYKKMR"
+  appId: "1:14934832180:web:e70c3503671c9d25228661"
 };
-  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  console.log("✅ admin.js loaded");
+
+const loginBtn = document.getElementById("loginBtn");
+console.log("loginBtn element =", loginBtn);
+
+loginBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
+  console.log("🟢 login clicked");
+});
   const db = getFirestore(app);
 
   // Helpers
