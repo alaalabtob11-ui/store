@@ -1,79 +1,658 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>لوحة التحكم</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:Arial;background:#f5f5f5;padding:20px}
-form{background:#fff;padding:20px;border-radius:12px;max-width:500px}
-input,textarea,select{width:100%;padding:8px;margin:8px 0}
-button{padding:10px;background:#000;color:#fff;border:none;cursor:pointer}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>لوحة التحكم - Admin</title>
+
+  <style>
+    body{font-family:Arial;background:#f5f5f5;margin:0;padding:20px}
+    .wrap{max-width:980px;margin:0 auto}
+    h1{margin:0 0 15px}
+    .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+    button{cursor:pointer;border:none;border-radius:10px;padding:10px 12px}
+    .tabbtn{background:#eee}
+    .tabbtn.active{background:#111;color:#fff}
+    .danger{background:#e11d48;color:#fff}
+    .ok{background:#16a34a;color:#fff}
+    .muted{background:#e5e7eb}
+    input,select,textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:14px}
+    textarea{min-height:90px;resize:vertical}
+    label{display:block;margin:10px 0 6px;font-weight:bold}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    @media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
+    .hidden{display:none}
+    .msg{margin-top:10px;padding:10px;border-radius:10px}
+    .msg.ok{background:#dcfce7;color:#065f46}
+    .msg.err{background:#fee2e2;color:#7f1d1d}
+    .list{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+    .item{background:#fff;border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .item .left{display:flex;gap:12px;align-items:center}
+    .thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;background:#eee}
+    .title{font-weight:bold}
+    .sub{font-size:13px;color:#666;margin-top:2px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{display:inline-block;background:#f3f4f6;border-radius:999px;padding:3px 9px;font-size:12px;color:#111;margin-inline-start:6px}
+    .divider{height:1px;background:#eee;margin:12px 0}
+  </style>
 </head>
+
 <body>
+<div class="wrap">
+  <h1>🛠️ لوحة التحكم</h1>
 
-<h2>➕ إضافة منتج</h2>
+  <!-- Login Card -->
+  <div id="loginCard" class="card">
+    <h3>تسجيل دخول الأدمن</h3>
+    <div class="grid2">
+      <div>
+        <label>الإيميل</label>
+        <input id="email" type="email" placeholder="admin@example.com">
+      </div>
+      <div>
+        <label>كلمة المرور</label>
+        <input id="password" type="password" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="btnbar">
+      <button id="loginBtn" class="ok">دخول</button>
+    </div>
+    <div id="loginMsg"></div>
+    <div class="divider"></div>
+    <p style="color:#666;margin:0">
+      ✅ الحماية هنا عبر Firebase Auth + قواعد Firestore (أقوى من باسورد داخل الصفحة).
+    </p>
+  </div>
 
-<form id="productForm">
-  <input type="text" id="name" placeholder="اسم المنتج" required>
-  <input type="number" id="price" placeholder="السعر" required>
-  <input type="text" id="image" placeholder="رابط الصورة" required>
-  <input type="text" id="category" placeholder="المجموعة (مثال: chatgpt)" required>
-  <input type="number" id="order" placeholder="الترتيب (1,2,3...)" required>
-  <textarea id="description" placeholder="الوصف (كل سطر سيكون نقطة جديدة)"></textarea>
-  <button type="submit">إضافة المنتج</button>
-</form>
+  <!-- Admin Panel -->
+  <div id="adminCard" class="card hidden">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div>
+        <b>✅ تم تسجيل الدخول</b>
+        <span id="userInfo" class="pill"></span>
+      </div>
+      <button id="logoutBtn" class="muted">تسجيل خروج</button>
+    </div>
 
-<p id="msg"></p>
+    <div class="btnbar">
+      <button class="tabbtn active" data-tab="addProduct">➕ إضافة منتجات</button>
+      <button class="tabbtn" data-tab="addGroup">🗂️ إضافة مجموعات</button>
+      <button class="tabbtn" data-tab="editProducts">✏️ تعديل المنتجات</button>
+      <button class="tabbtn" data-tab="deleteProducts">🗑️ حذف المنتجات</button>
+    </div>
+
+    <!-- Add Product -->
+    <div id="tab-addProduct">
+      <h3>➕ إضافة منتج</h3>
+
+      <div class="grid2">
+        <div>
+          <label>اسم المنتج (مطلوب)</label>
+          <input id="p_name" placeholder="مثال: ChatGPT">
+        </div>
+        <div>
+          <label>السعر (اختياري)</label>
+          <input id="p_price" type="number" step="0.01" placeholder="25">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>رابط الصورة (اختياري)</label>
+          <input id="p_image" placeholder="https://...">
+        </div>
+        <div>
+          <label>المجموعة (اختياري)</label>
+          <select id="p_group">
+            <option value="">بدون مجموعة</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>الترتيب (اختياري)</label>
+          <input id="p_order" type="number" placeholder="1">
+        </div>
+        <div>
+          <label>وصف متعدد الأسطر (اختياري)</label>
+          <textarea id="p_desc" placeholder="كل سطر = نقطة جديدة&#10;مثال:&#10;شهر واحد حساب كامل&#10;5 أشخاص"></textarea>
+        </div>
+      </div>
+
+      <div class="btnbar">
+        <button id="addProductBtn" class="ok">إضافة المنتج</button>
+      </div>
+      <div id="addProductMsg"></div>
+    </div>
+
+    <!-- Add Group -->
+    <div id="tab-addGroup" class="hidden">
+      <h3>🗂️ إضافة مجموعة</h3>
+
+      <div class="grid2">
+        <div>
+          <label>اسم المجموعة (مطلوب)</label>
+          <input id="g_name" placeholder="مثال: chatgpt">
+        </div>
+        <div>
+          <label>ترتيب المجموعة (اختياري)</label>
+          <input id="g_order" type="number" placeholder="1">
+        </div>
+      </div>
+
+      <div class="btnbar">
+        <button id="addGroupBtn" class="ok">إضافة المجموعة</button>
+        <button id="refreshGroupsBtn" class="muted">تحديث قائمة المجموعات</button>
+      </div>
+      <div id="addGroupMsg"></div>
+
+      <div class="divider"></div>
+      <h4 style="margin:0 0 8px">المجموعات الحالية</h4>
+      <div id="groupsList" class="list"></div>
+    </div>
+
+    <!-- Edit Products -->
+    <div id="tab-editProducts" class="hidden">
+      <h3>✏️ تعديل المنتجات</h3>
+      <p style="margin:0;color:#666">اضغط "تعديل" على أي منتج ثم غيّر البيانات واحفظ.</p>
+      <div class="btnbar">
+        <button id="reloadEditBtn" class="muted">تحديث القائمة</button>
+      </div>
+      <div id="editList" class="list"></div>
+
+      <!-- Edit Box -->
+      <div id="editBox" class="card hidden" style="margin-top:12px;background:#fafafa">
+        <h4 style="margin:0 0 10px">تعديل المنتج</h4>
+        <div class="grid2">
+          <div>
+            <label>اسم المنتج (مطلوب)</label>
+            <input id="e_name">
+          </div>
+          <div>
+            <label>السعر (اختياري)</label>
+            <input id="e_price" type="number" step="0.01">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label>رابط الصورة (اختياري)</label>
+            <input id="e_image">
+          </div>
+          <div>
+            <label>المجموعة (اختياري)</label>
+            <select id="e_group">
+              <option value="">بدون مجموعة</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label>الترتيب (اختياري)</label>
+            <input id="e_order" type="number">
+          </div>
+          <div>
+            <label>وصف متعدد الأسطر (اختياري)</label>
+            <textarea id="e_desc"></textarea>
+          </div>
+        </div>
+
+        <div class="btnbar">
+          <button id="saveEditBtn" class="ok">حفظ التعديل</button>
+          <button id="cancelEditBtn" class="muted">إلغاء</button>
+        </div>
+        <div id="editMsg"></div>
+      </div>
+    </div>
+
+    <!-- Delete Products -->
+    <div id="tab-deleteProducts" class="hidden">
+      <h3>🗑️ حذف المنتجات</h3>
+      <p style="margin:0;color:#666">اضغط حذف وسيطلب تأكيد.</p>
+      <div class="btnbar">
+        <button id="reloadDeleteBtn" class="muted">تحديث القائمة</button>
+      </div>
+      <div id="deleteList" class="list"></div>
+      <div id="deleteMsg"></div>
+    </div>
+
+  </div>
+</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+  // Firebase imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    orderBy,
+    doc,
+    deleteDoc,
+    updateDoc
+  } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD4GGpTrC6htUcskMcECYM06zjKYQd7CmA",
-  authDomain: "alaa-f520d.firebaseapp.com",
-  projectId: "alaa-f520d",
-  storageBucket: "alaa-f520d.firebasestorage.app",
-  messagingSenderId: "14934832180",
-  appId: "1:14934832180:web:e70c3503671c9d25228661"
-};
+  // ✅ ضع إعدادات مشروعك
+  const firebaseConfig = {
+    apiKey: "AIzaSyD4GGpTrC6htUcskMcECYM06zjKYQd7CmA",
+    authDomain: "alaa-f520d.firebaseapp.com",
+    projectId: "alaa-f520d",
+    storageBucket: "alaa-f520d.firebasestorage.app",
+    messagingSenderId: "14934832180",
+    appId: "1:14934832180:web:e70c3503671c9d25228661"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-document.getElementById("productForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
+  // UI helpers
+  const $ = (id) => document.getElementById(id);
+  function showMsg(el, text, type="ok"){
+    el.innerHTML = `<div class="msg ${type === "ok" ? "ok":"err"}">${text}</div>`;
+  }
+  function clearMsg(el){ el.innerHTML = ""; }
+  function safeNum(v){
+    if (v === "" || v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  function descToArray(text){
+    const t = (text || "").trim();
+    if(!t) return null;
+    const lines = t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    return lines.length ? lines : null;
+  }
 
-  const name = document.getElementById("name").value;
-  const price = Number(document.getElementById("price").value);
-  const image = document.getElementById("image").value;
-  const category = document.getElementById("category").value;
-  const order = Number(document.getElementById("order").value);
+  // Tabs
+  const tabButtons = document.querySelectorAll(".tabbtn");
+  function openTab(name){
+    tabButtons.forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    $("tab-addProduct").classList.toggle("hidden", name !== "addProduct");
+    $("tab-addGroup").classList.toggle("hidden", name !== "addGroup");
+    $("tab-editProducts").classList.toggle("hidden", name !== "editProducts");
+    $("tab-deleteProducts").classList.toggle("hidden", name !== "deleteProducts");
+  }
+  tabButtons.forEach(btn => btn.addEventListener("click", () => openTab(btn.dataset.tab)));
 
-  const descriptionText = document.getElementById("description").value;
-  const description1 = descriptionText.split("\n").filter(line => line.trim() !== "");
+  // ---------- AUTH ----------
+  $("loginBtn").onclick = async () => {
+    clearMsg($("loginMsg"));
+    const email = $("email").value.trim();
+    const pass = $("password").value;
+    if(!email || !pass) return showMsg($("loginMsg"), "اكتب الإيميل وكلمة المرور", "err");
 
-  try {
-    await addDoc(collection(db, "products"), {
-      name,
-      price,
-      image,
-      category,
-      order,
-      description1
+    try{
+      await signInWithEmailAndPassword(auth, email, pass);
+      $("password").value = "";
+    }catch(e){
+      showMsg($("loginMsg"), "فشل الدخول: تأكد من البيانات", "err");
+      console.error(e);
+    }
+  };
+
+  $("logoutBtn").onclick = async () => {
+    await signOut(auth);
+  };
+
+  onAuthStateChanged(auth, async (user) => {
+    if(user){
+      $("loginCard").classList.add("hidden");
+      $("adminCard").classList.remove("hidden");
+      $("userInfo").textContent = user.email || user.uid;
+
+      // جهّز القوائم أول ما يدخل
+      await loadGroupsToDropdowns();
+      await renderGroupsList();
+      await renderEditList();
+      await renderDeleteList();
+    }else{
+      $("adminCard").classList.add("hidden");
+      $("loginCard").classList.remove("hidden");
+      $("userInfo").textContent = "";
+    }
+  });
+
+  // ---------- GROUPS ----------
+  async function loadGroupsToDropdowns(){
+    // يسحب المجموعات ويرتبها حسب order ثم الاسم
+    const groupsRef = collection(db, "groups");
+    let snap;
+    try{
+      snap = await getDocs(query(groupsRef, orderBy("order","asc")));
+    }catch{
+      // إذا ما عندك order لبعض السجلات، نجيب بدون orderBy
+      snap = await getDocs(groupsRef);
+    }
+
+    const groups = [];
+    snap.forEach(d => groups.push({ id:d.id, ...d.data() }));
+
+    // ترتيب احتياطي
+    groups.sort((a,b)=> (a.order??9999)-(b.order??9999) || String(a.name||"").localeCompare(String(b.name||"")));
+
+    const fill = (selectEl) => {
+      const current = selectEl.value;
+      selectEl.innerHTML = `<option value="">بدون مجموعة</option>`;
+      groups.forEach(g=>{
+        const name = g.name || "(بدون اسم)";
+        selectEl.innerHTML += `<option value="${g.id}">${name}</option>`;
+      });
+      selectEl.value = current || "";
+    };
+
+    fill($("p_group"));
+    fill($("e_group"));
+  }
+
+  $("addGroupBtn").onclick = async () => {
+    clearMsg($("addGroupMsg"));
+    const name = $("g_name").value.trim();
+    const order = safeNum($("g_order").value);
+
+    if(!name) return showMsg($("addGroupMsg"), "اسم المجموعة مطلوب", "err");
+
+    try{
+      await addDoc(collection(db,"groups"), {
+        name,
+        order: order ?? 9999,
+        createdAt: Date.now()
+      });
+      $("g_name").value = "";
+      $("g_order").value = "";
+      showMsg($("addGroupMsg"), "تمت إضافة المجموعة ✅");
+      await loadGroupsToDropdowns();
+      await renderGroupsList();
+    }catch(e){
+      showMsg($("addGroupMsg"), "حدث خطأ أثناء إضافة المجموعة", "err");
+      console.error(e);
+    }
+  };
+
+  $("refreshGroupsBtn").onclick = async () => {
+    await loadGroupsToDropdowns();
+    await renderGroupsList();
+    showMsg($("addGroupMsg"), "تم تحديث المجموعات ✅");
+  };
+
+  async function renderGroupsList(){
+    const list = $("groupsList");
+    list.innerHTML = "جاري التحميل...";
+    const snap = await getDocs(collection(db,"groups"));
+    const groups = [];
+    snap.forEach(d=>groups.push({id:d.id, ...d.data()}));
+    groups.sort((a,b)=> (a.order??9999)-(b.order??9999) || String(a.name||"").localeCompare(String(b.name||"")));
+
+    list.innerHTML = "";
+    if(!groups.length){
+      list.innerHTML = `<div style="color:#666">لا توجد مجموعات بعد.</div>`;
+      return;
+    }
+
+    groups.forEach(g=>{
+      list.innerHTML += `
+        <div class="item">
+          <div class="left">
+            <div>
+              <div class="title">${g.name || "(بدون اسم)"}</div>
+              <div class="sub">ترتيب: ${g.order ?? "-"}</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="danger" data-del-group="${g.id}">حذف</button>
+          </div>
+        </div>
+      `;
     });
 
-    document.getElementById("msg").innerText = "✅ تم إضافة المنتج بنجاح";
-    document.getElementById("productForm").reset();
-
-  } catch (error) {
-    document.getElementById("msg").innerText = "❌ حدث خطأ";
-    console.error(error);
+    // حذف مجموعة (اختياري)
+    list.querySelectorAll("[data-del-group]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-del-group");
+        if(confirm("حذف المجموعة؟ (لن يحذف المنتجات تلقائيًا)")){
+          await deleteDoc(doc(db,"groups",id));
+          await loadGroupsToDropdowns();
+          await renderGroupsList();
+        }
+      };
+    });
   }
-});
-</script>
 
+  // ---------- ADD PRODUCT ----------
+  $("addProductBtn").onclick = async () => {
+    clearMsg($("addProductMsg"));
+
+    const name = $("p_name").value.trim();
+    if(!name) return showMsg($("addProductMsg"), "اسم المنتج مطلوب", "err");
+
+    const price = safeNum($("p_price").value);
+    const image = $("p_image").value.trim() || null;
+    const groupId = $("p_group").value || null;
+    const order = safeNum($("p_order").value);
+    const description1 = descToArray($("p_desc").value);
+
+    // ✅ السماح بالحقول الفارغة: نخزن فقط الموجود
+    const data = {
+      name,
+      createdAt: Date.now(),
+      order: order ?? 9999,
+    };
+    if(price !== null) data.price = price;
+    if(image) data.image = image;
+    if(groupId) data.groupId = groupId;
+    if(description1) data.description1 = description1;
+
+    try{
+      await addDoc(collection(db,"products"), data);
+
+      $("p_name").value = "";
+      $("p_price").value = "";
+      $("p_image").value = "";
+      $("p_group").value = "";
+      $("p_order").value = "";
+      $("p_desc").value = "";
+
+      showMsg($("addProductMsg"), "تمت إضافة المنتج ✅");
+      await renderEditList();
+      await renderDeleteList();
+    }catch(e){
+      showMsg($("addProductMsg"), "حدث خطأ أثناء إضافة المنتج", "err");
+      console.error(e);
+    }
+  };
+
+  // ---------- LIST PRODUCTS (EDIT / DELETE) ----------
+  async function getGroupsMap(){
+    const snap = await getDocs(collection(db,"groups"));
+    const map = new Map();
+    snap.forEach(d=> map.set(d.id, d.data().name || "(بدون اسم)"));
+    return map;
+  }
+
+  async function getProductsSorted(){
+    const ref = collection(db,"products");
+    let snap;
+    try{
+      snap = await getDocs(query(ref, orderBy("order","asc")));
+    }catch{
+      snap = await getDocs(ref);
+    }
+    const arr = [];
+    snap.forEach(d=>arr.push({id:d.id, ...d.data()}));
+    arr.sort((a,b)=> (a.order??9999)-(b.order??9999) || String(a.name||"").localeCompare(String(b.name||"")));
+    return arr;
+  }
+
+  // ---------- DELETE TAB ----------
+  $("reloadDeleteBtn").onclick = async ()=> renderDeleteList();
+
+  async function renderDeleteList(){
+    clearMsg($("deleteMsg"));
+    const list = $("deleteList");
+    list.innerHTML = "جاري التحميل...";
+
+    const groupsMap = await getGroupsMap();
+    const products = await getProductsSorted();
+
+    list.innerHTML = "";
+    if(!products.length){
+      list.innerHTML = `<div style="color:#666">لا توجد منتجات.</div>`;
+      return;
+    }
+
+    products.forEach(p=>{
+      const gName = p.groupId ? (groupsMap.get(p.groupId) || "مجموعة محذوفة") : "بدون مجموعة";
+      const img = p.image || "";
+      list.innerHTML += `
+        <div class="item">
+          <div class="left">
+            <img class="thumb" src="${img}" onerror="this.style.display='none'">
+            <div>
+              <div class="title">${p.name || "(بدون اسم)"} <span class="pill">${gName}</span></div>
+              <div class="sub">سعر: ${p.price ?? "-"} | ترتيب: ${p.order ?? "-"}</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="danger" data-del="${p.id}">حذف</button>
+          </div>
+        </div>
+      `;
+    });
+
+    list.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-del");
+        if(confirm("هل تريد حذف هذا المنتج؟")){
+          try{
+            await deleteDoc(doc(db,"products",id));
+            showMsg($("deleteMsg"), "تم حذف المنتج ✅");
+            await renderDeleteList();
+            await renderEditList();
+          }catch(e){
+            showMsg($("deleteMsg"), "فشل الحذف", "err");
+            console.error(e);
+          }
+        }
+      };
+    });
+  }
+
+  // ---------- EDIT TAB ----------
+  $("reloadEditBtn").onclick = async ()=> renderEditList();
+
+  let editingId = null;
+
+  async function renderEditList(){
+    clearMsg($("editMsg"));
+    $("editBox").classList.add("hidden");
+    editingId = null;
+
+    const list = $("editList");
+    list.innerHTML = "جاري التحميل...";
+
+    const groupsMap = await getGroupsMap();
+    const products = await getProductsSorted();
+
+    list.innerHTML = "";
+    if(!products.length){
+      list.innerHTML = `<div style="color:#666">لا توجد منتجات.</div>`;
+      return;
+    }
+
+    products.forEach(p=>{
+      const gName = p.groupId ? (groupsMap.get(p.groupId) || "مجموعة محذوفة") : "بدون مجموعة";
+      const img = p.image || "";
+      list.innerHTML += `
+        <div class="item">
+          <div class="left">
+            <img class="thumb" src="${img}" onerror="this.style.display='none'">
+            <div>
+              <div class="title">${p.name || "(بدون اسم)"} <span class="pill">${gName}</span></div>
+              <div class="sub">سعر: ${p.price ?? "-"} | ترتيب: ${p.order ?? "-"}</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="muted" data-edit="${p.id}">تعديل</button>
+          </div>
+        </div>
+      `;
+    });
+
+    list.querySelectorAll("[data-edit]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-edit");
+        const products2 = await getProductsSorted();
+        const p = products2.find(x=>x.id===id);
+        if(!p) return;
+
+        editingId = id;
+        $("editBox").classList.remove("hidden");
+
+        $("e_name").value = p.name || "";
+        $("e_price").value = (p.price ?? "");
+        $("e_image").value = (p.image ?? "");
+        $("e_order").value = (p.order ?? "");
+        $("e_group").value = (p.groupId ?? "");
+        $("e_desc").value = (Array.isArray(p.description1) ? p.description1.join("\n") : "");
+        clearMsg($("editMsg"));
+      };
+    });
+  }
+
+  $("cancelEditBtn").onclick = ()=>{
+    $("editBox").classList.add("hidden");
+    editingId = null;
+    clearMsg($("editMsg"));
+  };
+
+  $("saveEditBtn").onclick = async ()=>{
+    clearMsg($("editMsg"));
+    if(!editingId) return;
+
+    const name = $("e_name").value.trim();
+    if(!name) return showMsg($("editMsg"), "اسم المنتج مطلوب", "err");
+
+    const price = safeNum($("e_price").value);
+    const image = $("e_image").value.trim() || null;
+    const order = safeNum($("e_order").value);
+    const groupId = $("e_group").value || null;
+    const description1 = descToArray($("e_desc").value);
+
+    // نحدث فقط الموجود + نسمح بترك حقول فاضية (نحذفها من الدوك)
+    const payload = {
+      name,
+      order: order ?? 9999,
+      updatedAt: Date.now()
+    };
+
+    // ملاحظة: updateDoc لا يحذف الحقول تلقائيًا إذا تركتها فاضية
+    // لذلك سنحطها null، وموقعك يتعامل معها كاختيارية
+    payload.price = (price !== null) ? price : null;
+    payload.image = image ? image : null;
+    payload.groupId = groupId ? groupId : null;
+    payload.description1 = description1 ? description1 : null;
+
+    try{
+      await updateDoc(doc(db,"products",editingId), payload);
+      showMsg($("editMsg"), "تم حفظ التعديل ✅");
+      await renderEditList();
+      await renderDeleteList();
+    }catch(e){
+      showMsg($("editMsg"), "فشل الحفظ", "err");
+      console.error(e);
+    }
+  };
+
+  // بدء: افتح أول تب
+  openTab("addProduct");
+</script>
 </body>
 </html>
