@@ -46,9 +46,9 @@ img {width:100%; height:150px; object-fit:cover;}
           <img src="${product.image}">
           <h3>${product.name}</h3>
           ${product.description1 
-  ? product.description1.map(line => `<p>${line}</p>`).join("")
-  : ""
-}
+      ? product.description1.map(line => `<p>${line}</p>`).join("")
+      : ""
+    }
           <p>${product.price}$</p>
         </div>
       `;
